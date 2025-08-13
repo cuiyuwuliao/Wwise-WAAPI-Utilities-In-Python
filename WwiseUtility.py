@@ -97,10 +97,11 @@ def checkStringEquals_ignoreP(string1, string2):
         
     
 
-#target: 导入的目的地, 可以是sound也可以是父级, 使用id或者wwise返回的包含id的字典
+#target: 导入的目的地, 可以是sound也可以是父级, 为父级时自动匹配父级下所有命名相同的声音，使用id或者wwise返回的包含id的字典
 #newSource: True则覆盖active source, False则创建新的Source
 #newSound: True则添加新Sound(命名重复时自动加后缀), False则只导入命名匹配的Sound
 #noImport：模拟运行,但不导入
+#会返回一个dict list, 包含要导入的文件和在wwise里匹配到的导入目的地
 def batchImportToTarget(filePaths, target, newSource=False, newSound=False, noImport=False):
     if isinstance(filePaths, str):
         filePaths = [filePaths]
@@ -264,4 +265,5 @@ def getInfo(id, info):
             "options": {"return": [info]},
         }
         result = client.call("ak.wwise.core.object.get", args)
+
         return result["return"][0][info]
