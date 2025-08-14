@@ -57,19 +57,33 @@ def getSelectedObjects(singleItem = False):
 
 #return the descendants info of an wwise object
 #includeSelf: if True, include the the object itself
-def getDescendantsFromID(id, includeSelf = False):
+def getDescendantsFromID(id, includeSelf = False, directChildren = False):
     if isinstance(id, dict):
         id = id["id"]
     thisArg = ""
     if includeSelf:
         thisArg = ", this"
+    scope = "descendants"
+    if directChildren:
+        scope = "children"
     with waapi.WaapiClient() as client:
         args = {
-            "waql": f"$ from object \"{id}\" select descendants{thisArg}",
+            "waql": f"$ from object \"{id}\" select {scope}{thisArg}",
             "options": {"return": ["name", "shortID", "id", "type", "notes", "path", "originalFilePath","activeSource","parent"]}
         }
         search_result = client.call("ak.wwise.core.object.get", args)["return"]
         return search_result
+
+def getFullDictFromID(id):
+    if isinstance(id, dict):
+        id = id["id"]
+    with waapi.WaapiClient() as client:
+        args = {
+            "waql": f"$ from object \"{id}\" ",
+            "options": {"return": ["name", "shortID", "id", "type", "notes", "path", "originalFilePath","activeSource","parent"]}
+        }
+        search_result = client.call("ak.wwise.core.object.get", args)["return"]
+        return search_result[0]
 
 
 def playWwiseEvent(eventName):
@@ -78,7 +92,15 @@ def playWwiseEvent(eventName):
         client.call("ak.soundengine.setDefaultListeners", {"listeners": [2233445]})
         client.call("ak.soundengine.registerGameObj", {"gameObject": 1122334, "name": "QuickPlay"})
         client.call("ak.soundengine.stopAll", {"gameObject": 1122334})
-        client.call("ak.soundengine.postEvent", {"event": eventName, "gameObject": 1122334})
+        playingID = client.call("ak.soundengine.postEvent", {"event": eventName, "gameObject": 1122334})
+        return playingID
+    
+def stopPlayingID(playingID):
+    try:
+        with waapi.WaapiClient() as client:
+            client.call("ak.soundengine.stopPlayingID", {"playingId": playingID, "transitionDuration": 200, "fadeCurve": 4})
+    except Exception as e:
+        print(f"WAAPI error: {e}")
 
 # Add a tag to a Wwise object path, for example: <Sound SFX> -> "\\Actor-Mixer Hierarchy\\Default Work Unit\\<Sound SFX>MySound"
 def addWwisePathTag(input_string, tag):
@@ -181,10 +203,52 @@ def getSelectionInput(restriction):
             continue
         print(f"选择了: <{selectionType}>{selectionName}")
     return selection
-        
 
+#property类型不可以加@或@@     
+def setProperty(target, property, value):
+    if isinstance(target, dict):
+        target = target["id"]
+    with waapi.WaapiClient() as client:
+        args = {
+            "object": target,
+            "property": property,
+            "value": value
+        }
+        client.call("ak.wwise.core.object.setProperty", args)
+
+#property类型必须加@或@@
+#@: object自身的property数据
+#@@: object实际使用(继承父级)的property数据
+def setObject(target, property, value):
+    if isinstance(target, dict):
+        target = target["id"]
+    with waapi.WaapiClient() as client:
+        args = {
+            "objects": [
+                {
+                    "object": target,
+                    property: value
+                }
+            ]
+        }
+        client.call("ak.wwise.core.object.set", args)
+
+#返回一个wwise对象的指定信息
+#获取property时要加@或@@
+def getInfo(id, info):
+    if isinstance(id, dict):
+        id = id["id"]
+    with waapi.WaapiClient() as client:
+        args = {
+            "waql": f"\"{id}\"",
+            "options": {"return": [info]},
+        }
+        result = client.call("ak.wwise.core.object.get", args)
+        return result["return"][0][info]
 
 def addRtpc(controlInput, propertyName, curve, target):
+    if isinstance(target, dict):
+        target = target["id"]
     with waapi.WaapiClient() as client:
         args = {
             "objects": [
@@ -207,32 +271,25 @@ def addRtpc(controlInput, propertyName, curve, target):
         result = client.call("ak.wwise.core.object.set", args)
     return result
 
-
-# copy the RTPC from one object to another
-def copyRtpc(id, ids, overwrite):
-    global client
+# copy the RTPC from one object to other objects
+def copyRtpc(id, ids, overwrite = True):
     if(overwrite):
         for i in range(0, len(ids), 1):
-            deleteRTPC(ids[i])
-
+            clearRTPC(ids[i])
     sourceRtpcs = {}
-    # args = {
-    #     "waql": f"\"{id}\"",
-    #     "options": {"return": ["@RTPC"]},
-    # }
     try:
         sourceRtpcs = getInfo(id, "@RTPC")
     except KeyError:
         if(not overwrite):
             print("Source object has no RTPC!")
-            
     for i in range(0, len(sourceRtpcs), 1):
         rtpcId = sourceRtpcs[i]["id"]
         args = {
             "waql": f"\"{rtpcId}\"",
             "options": {"return": ["@PropertyName", "@ControlInput", "@Curve"]},
         }
-        rtpcValues = client.call("ak.wwise.core.object.get", args)["return"][0]
+        with waapi.WaapiClient() as client:
+            rtpcValues = client.call("ak.wwise.core.object.get", args)["return"][0]
         try:
             curve = rtpcValues["@Curve"]
             curve.pop("id")
@@ -245,25 +302,130 @@ def copyRtpc(id, ids, overwrite):
         except KeyError:
             print("Source object has incomplete RTPC")
 
-
-
 # 删除一个对象下所有RTPC
-def deleteRTPC(id):
-    with waapi.WaapiClient() as client:
-        rtpc = getInfo(id, "@RTPC")
-        for i in range(0, len(rtpc), 1):
-            rtpcId = rtpc[i]["id"]
-            args = {"object": rtpcId, "property" : "RTPC" ,"value": None}
-            client.call("ak.wwise.core.object.setReference", args)
-
-
-#返回一个wwise对象的指定信息
-def getInfo(id, info):
+def clearRTPC(target):
+    if isinstance(target, dict):
+        target = target["id"]
     with waapi.WaapiClient() as client:
         args = {
-            "waql": f"\"{id}\"",
-            "options": {"return": [info]},
+            "objects": [
+                {
+                    "object": target,
+                    "@RTPC": [],
+                    "listMode":"replaceAll"
+                }
+            ],
+            "options": {"return": ["id", "name", "type", "@Curve"]},
         }
-        result = client.call("ak.wwise.core.object.get", args)
+        client.call("ak.wwise.core.object.set", args)
 
-        return result["return"][0][info]
+#return a similarity score from 2 "_" separeted strings
+#substrings must be exact match, "keys" & "key" does not contribute to the score 
+def jaccard_similarity(str1, str2):
+    set1 = set(re.split(r'[\s_]+', str1.lower()))
+    set2 = set(re.split(r'[\s_]+', str2.lower()))
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    return intersection / union if union != 0 else 0.0
+
+
+def clearSwitchAssignation(target):
+    if isinstance(target, dict):
+        target = target["id"]
+    with waapi.WaapiClient() as client:
+        Assignments = client.call("ak.wwise.core.switchContainer.getAssignments", {"id" : target})["return"]
+        if len(Assignments) >0:
+            for item in Assignments:
+                client.call("ak.wwise.core.switchContainer.removeAssignment", item)
+
+# assign direct child objects to switches for a switch container, the container must have a switch group assigned in Wwise
+def autoAssignSwitch(target, overwrite = True):
+    if overwrite == True:
+        clearSwitchAssignation(target)
+    if getInfo(target, "type") != "SwitchContainer":
+        print(f"不是switch容器, 跳过匹配switch: {target}")
+        return False
+    try:
+        switchGroup = getInfo(target, "SwitchGroupOrStateGroup")
+        switches = getDescendantsFromID(switchGroup, directChildren=True)
+    except:
+        print(f"无有效switch group, 跳过匹配switch: {target}")
+        return False
+    children = getDescendantsFromID(target, directChildren=True)
+    for switch in switches:#assign an object item for every switch in the group 
+        bestMatch = ""
+        bestScore = 0.0
+        for item in children:
+            score = jaccard_similarity(switch["name"], item["name"])
+            if score > bestScore:
+                bestScore = score
+                bestMatch = item["id"]
+        if bestScore == 0 or bestMatch == "":
+            continue
+        args = {
+            "child" : bestMatch,
+            "stateOrSwitch" : switch["id"]
+        }
+        with waapi.WaapiClient() as client:
+            client.call("ak.wwise.core.switchContainer.addAssignment", args)
+            return True
+
+
+#input must be a dict with name and id
+#scope: a dic list that contains object path, for specifing the candidate buses 
+def autoAssignBus(target, scope = []):
+    targetName = target["name"]
+    targetId = target["id"]
+    busList = getWwiseObjectList(customTypeList=["bus"])
+    bestScore = 0.0
+    candidates = []
+    for item in busList:
+        busName = item['name']
+        busPath = item['path']
+        if isinstance(scope, list) and scope != []:
+            if len(getItemsFromDicList(scope, busPath)) == 0:
+                continue
+        score = jaccard_similarity(busName, targetName)
+        if score >= bestScore:
+            if score > bestScore:
+                candidates.clear()
+            bestScore = score
+            if score != 0:
+                candidates.append(busPath)
+    if len(candidates) == 0:
+        print(f"没有匹配的bus: {targetName}")
+        return
+    elif len(candidates) > 1:
+        print(f"无法决定匹配的bus<{targetName}>: \n{"\n".join(candidates)}")
+        return
+    arg = {
+        "objects": [
+            {
+                "object": targetId, 
+                "@OutputBus": candidates[0],
+                "@OverrideOutput": "True"
+            }
+        ]
+    }
+    with waapi.WaapiClient() as client:
+        client.call("ak.wwise.core.object.set", arg)
+        print(f"发送bus: {targetName} --> {candidates[0]}")
+
+#convert volume to makeUp gain, for HDR related purposes
+def volumeToMakeUpGain(target):
+    if isinstance(target, dict):
+        target = target["id"]
+    gain = getInfo(target, "makeUpGain")
+    vol = getInfo(target, "Volume")
+    path = getInfo(target, "path")
+    if vol != 0:
+        newGain = gain + vol 
+        if newGain > 96 or newGain < -96:
+            print(f"gain要被加爆了, 跳过: {path}")
+            return 0 
+        setProperty(target, "Volume", 0)
+        setProperty(target, "MakeUpGain", newGain)
+        return newGain
+    
+
+
