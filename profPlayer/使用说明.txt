@@ -1,0 +1,22 @@
+安装说明：
+1. 把reaper_reawwise.dll复制放在下面目录（如果已安装reawwise可跳过）
+Windows = %appdata%\REAPER\UserPlugins
+Mac = ~/Library/Application Support/REAPER/UserPlugins
+
+2. 打开reaper的action list，窗口右下角找到new action按钮，点击load ReaScript按钮
+
+3. 在窗口里找到并分别加载 profPlayer.lua 和 profLoader.lua 文件（可以放在任何地方），可以自行设置快捷键
+
+如何导出profiler文件：
+1. 正常连接到游戏，然后开始运行profiler （最好在游戏开始前就开始运行，因为游戏刚运行时会播放重要的初始化事件和音乐）
+
+2. 在wwise中，profiler页面，capture log窗口的右上角，点击眼睛图标，在Types栏下，全选API Calls，其他的可选可不选
+
+3. 点击眼睛图标左边的保存图标，保存类型选择txt，任意命名，即可保存成功
+
+播放器使用说明：
+1. 在reaper工程中先运行profLoader，弹出一个窗口，在窗口输入txt格式的profiler文件的路径，这一步可能需要加载比较长时间，不要关闭reaper
+
+2.在reaper工程中运行profPlayer，然后播放
+
+

@@ -1,0 +1,11 @@
+[
+["ha",1001,null,null,"Stop_all",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Default_Work_Unit/Stop_all.Stop_all'",null,4350001001],
+["Play_Music_Level_ShengSuo_Room1",1002,null,null,"Play_Music_Level_ShengSuo_Room1",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Default_Work_Unit/Play_Music_Level_ShengSuo_Room1.Play_Music_Level_ShengSuo_Room1'",null,4350001002],
+["Play_Music_Ambient_Sanctuary_spatialAudio",1003,null,null,"Play_Music_Ambient_Sanctuary_spatialAudio",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Event_Ambient/Test/Play_Music_Ambient_Sanctuary_spatialAudio.Play_Music_Ambient_Sanctuary_spatialAudio'",null,4350001003],
+["Play_FT_Music_Breaker_01",1004,null,null,"Play_FT_Music_Breaker_01",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Test/Wa1/Music/Play_FT_Music_Breaker_01.Play_FT_Music_Breaker_01'",null,4350001004],
+["Play_FT_Music_Breaker",1005,null,null,"Play_FT_Music_Breaker",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Test/Wa1/Music/Play_FT_Music_Breaker.Play_FT_Music_Breaker'",null,4350001005],
+["Test_HRTF_Auro3D",1006,null,null,"Test_HRTF_Auro3D",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Event_Ambient/Test/Test_HRTF_Auro3D.Test_HRTF_Auro3D'",null,4350001006],
+["Play_Rain_drip_ont_Water_Demo",1007,null,null,"Play_Rain_drip_ont_Water_Demo",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Event_Ambient/Play_Rain_drip_ont_Water_Demo.Play_Rain_drip_ont_Water_Demo'",null,4350001007],
+["Play_Portal_Nature",1008,null,null,"Play_Portal_Nature",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Event_Ambient/Play_Portal_Nature.Play_Portal_Nature'",null,4350001008],
+["Play_Amb",1009,null,null,"Play_Amb",null,false,null,"AkAudioEvent'/Game/Nezha/Audio/Events/Event_Ambient/Play_Amb.Play_Amb'",null,4350001009]
+]
